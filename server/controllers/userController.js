@@ -1,6 +1,65 @@
 import User from '../models/User.js';
 import { AppError } from '../utils/errorHandler.js';
 
+// @desc    Get all users (admin only)
+// @route   GET /api/v1/users
+// @access  Private/Admin
+export const getAllUsers = async (req, res, next) => {
+  try {
+    // 1) Filtering
+    const queryObj = { ...req.query };
+    const excludedFields = ['page', 'sort', 'limit', 'fields'];
+    excludedFields.forEach(el => delete queryObj[el]);
+
+    // 2) Advanced filtering
+    let queryStr = JSON.stringify(queryObj);
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
+    
+    let query = User.find(JSON.parse(queryStr));
+
+    // 3) Sorting
+    if (req.query.sort) {
+      const sortBy = req.query.sort.split(',').join(' ');
+      query = query.sort(sortBy);
+    } else {
+      query = query.sort('-createdAt');
+    }
+
+    // 4) Field limiting
+    if (req.query.fields) {
+      const fields = req.query.fields.split(',').join(' ');
+      query = query.select(fields);
+    } else {
+      query = query.select('-__v');
+    }
+
+    // 5) Pagination
+    const page = req.query.page * 1 || 1;
+    const limit = req.query.limit * 1 || 100;
+    const skip = (page - 1) * limit;
+
+    if (req.query.page) {
+      const numUsers = await User.countDocuments();
+      if (skip >= numUsers) throw new Error('This page does not exist');
+    }
+    query = query.skip(skip).limit(limit);
+
+    // EXECUTE QUERY
+    const users = await query;
+
+    // SEND RESPONSE
+    res.status(200).json({
+      status: 'success',
+      results: users.length,
+      data: {
+        users
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get user by ID
 // @route   GET /api/v1/users/:id
 // @access  Private
@@ -91,8 +150,9 @@ export const deleteMe = async (req, res, next) => {
 };
 
 export default {
+  getAllUsers,
   getUser,
   getMe,
   updateMe,
-  deleteMe,
+  deleteMe
 };

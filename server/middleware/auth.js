@@ -17,9 +17,11 @@ export const isAdmin = (req, res, next) => {
 
 /**
  * Middleware to check if user is authenticated
+ * This works with the JWT strategy which attaches the user to req.user
  */
 export const isAuthenticated = (req, res, next) => {
-  if (req.isAuthenticated()) {
+  // Check if user is authenticated via JWT
+  if (req.user) {
     return next();
   }
   

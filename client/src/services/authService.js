@@ -3,17 +3,19 @@ import api from './api';
 const API_URL = '/api/v1/auth';
 
 // Set the auth token for requests if it exists
-const setAuthToken = (token) => {
+export const setAuthToken = (token) => {
   if (token) {
-    // Remove any existing 'Bearer ' prefix to avoid duplication
+    // Remove any existing Bearer prefix to prevent duplication
     const cleanToken = token.replace(/^Bearer\s+/i, '');
     api.defaults.headers.common['Authorization'] = `Bearer ${cleanToken}`;
+    localStorage.setItem('token', cleanToken);
   } else {
     delete api.defaults.headers.common['Authorization'];
+    localStorage.removeItem('token');
   }
 };
 
-// Get token from localStorage and set it in the headers
+// Initialize auth token from localStorage on app load
 const token = localStorage.getItem('token');
 if (token) {
   setAuthToken(token);
@@ -29,7 +31,7 @@ export const register = async (name, email, password, confirmPassword) => {
   });
   
   if (response.data.token) {
-    localStorage.setItem('token', response.data.token);
+    // setAuthToken will handle storing the token and setting headers
     setAuthToken(response.data.token);
   }
   
@@ -44,7 +46,7 @@ export const login = async (email, password) => {
   });
   
   if (response.data.token) {
-    localStorage.setItem('token', response.data.token);
+    // setAuthToken will handle storing the token and setting headers
     setAuthToken(response.data.token);
   }
   
@@ -59,7 +61,7 @@ export const adminLogin = async (email, password) => {
   });
   
   if (response.data.token) {
-    localStorage.setItem('token', response.data.token);
+    // setAuthToken will handle storing the token and setting headers
     setAuthToken(response.data.token);
   }
   
@@ -82,15 +84,38 @@ export const resetPassword = async (token, password, confirmPassword) => {
 };
 
 // Verify token
-export const verifyToken = async () => {
-  const response = await api.get(`${API_URL}/user`);
-  return response.data;
+export const verifyToken = async (token) => {
+  if (!token) {
+    throw new Error('No token provided');
+  }
+
+  try {
+    // Remove 'Bearer ' prefix if it exists
+    const cleanToken = token.replace(/^Bearer\s+/i, '');
+    
+    const response = await api.get(`${API_URL}/user`, {
+      headers: { Authorization: `Bearer ${cleanToken}` },
+      _skipAuth: true // Skip the auth interceptor for this request
+    });
+    
+    // If we get here, the token is valid and we have user data
+    // Return the clean token without Bearer prefix (it will be added by setAuthToken)
+    return {
+      ...response.data,
+      token: cleanToken
+    };
+  } catch (error) {
+    console.error('Token verification failed:', error);
+    // Clear the token if verification fails
+    setAuthToken(null);
+    throw error;
+  }
 };
 
 // Logout user
 export const logout = () => {
-  localStorage.removeItem('token');
-  delete api.defaults.headers.common['Authorization'];
+  // Clear the token using setAuthToken which handles both localStorage and axios headers
+  setAuthToken(null);
   // Clear any user data from the app state
   window.location.href = '/login';
 };

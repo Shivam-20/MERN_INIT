@@ -8,47 +8,106 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  
 
   useEffect(() => {
+    let isMounted = true;
+    
     const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        if (isMounted) {
+          setUser(null);
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          try {
-            const userData = await authService.verifyToken(token);
-            if (userData && userData.id) {  // Ensure we got valid user data
-              setUser(userData);
-            } else {
-              console.error('Invalid user data received:', userData);
-              localStorage.removeItem('token');
-            }
-          } catch (verifyError) {
-            console.error('Token verification failed:', verifyError);
+        // Set the token in the axios headers before verification
+        authService.setAuthToken(token);
+        
+        // Verify the token
+        const userData = await authService.verifyToken(token);
+        
+        if (isMounted) {
+          if (userData && userData.id) {
+            setUser(userData);
+          } else {
+            console.error('Invalid user data received:', userData);
             localStorage.removeItem('token');
+            delete api.defaults.headers.common['Authorization'];
           }
+          setLoading(false);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        localStorage.removeItem('token');
-      } finally {
-        setLoading(false);
+        if (isMounted) {
+          setUser(null);
+          localStorage.removeItem('token');
+          delete api.defaults.headers.common['Authorization'];
+          setLoading(false);
+        }
       }
     };
 
     checkAuth();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = async (email, password, isAdmin = false) => {
     try {
+      // Clear any existing token first
+      authService.setAuthToken(null);
+      
+      // Make the login request
       const data = isAdmin 
         ? await authService.adminLogin(email, password)
         : await authService.login(email, password);
       
-      localStorage.setItem('token', data.token);
-      setUser(data.user);
+      if (!data || !data.token) {
+        throw new Error('No token received from server');
+      }
+
+      // Set the token in localStorage and axios headers
+      authService.setAuthToken(data.token);
+      
+      // Get the user data from the response or fetch it
+      let userData = data.user;
+      if (!userData) {
+        userData = await authService.verifyToken(data.token);
+      }
+      
+      if (!userData || !userData.id) {
+        throw new Error('Invalid user data received');
+      }
+      
+      // Update the user state
+      setUser(userData);
       return { success: true };
+      
     } catch (error) {
-      return { success: false, message: error.message };
+      console.error('Login failed:', error);
+      // Clear any partial auth state on failure
+      authService.setAuthToken(null);
+      setUser(null);
+      
+      // Extract a user-friendly error message
+      let errorMessage = 'Login failed';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return { 
+        success: false, 
+        message: errorMessage
+      };
     }
   };
 

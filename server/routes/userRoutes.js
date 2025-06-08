@@ -1,18 +1,21 @@
 import express from 'express';
+import passport from 'passport';
 import * as userController from '../controllers/userController.js';
-import { isAuthenticated } from '../middleware/auth.js';
+import { AppError } from '../utils/errorHandler.js';
+import { isAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Protect all routes after this middleware
-router.use(isAuthenticated);
+// Protect all routes after this middleware with JWT strategy
+router.use(passport.authenticate('jwt', { session: false }));
+
+// Admin routes
+router.get('/', isAdmin, userController.getAllUsers);
 
 // User profile routes
 router.get('/me', userController.getMe, userController.getUser);
 router.patch('/updateMe', userController.updateMe);
 router.delete('/deleteMe', userController.deleteMe);
-
-// Admin routes can be added here
 
 // Fallback route
 router.all('*', (req, res, next) => {
