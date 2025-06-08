@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # MongoDB Service
+  mongodb:
+    image: mongo:6.0
+    container_name: encriptofy-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data_container:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=encriptofy
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "'db.runCommand({ ping: 1 })'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - encriptofy-network
+
+  # Backend Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: encriptofy-backend
+    command: sh -c "npm install && npm install express-validator && npm run dev"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/server/node_modules
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/encriptofy
+      - JWT_SECRET=your_jwt_secret_key_here
+      - JWT_EXPIRES_IN=1d
+      - ADMIN_EMAIL=admin@example.com
+      - ADMIN_PASSWORD=admin123
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - encriptofy-network
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    container_name: encriptofy-frontend
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+      - /app/.vite
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:5000/api/v1
+      - CHOKIDAR_USEPOLLING=true
+    working_dir: /app
+    stdin_open: true
+    tty: true
+    networks:
+      - encriptofy-network
+
+networks:
+  encriptofy-network:
+    driver: bridge
+
+volumes:
+  mongodb_data_container:
+    name: mongodb_data_container

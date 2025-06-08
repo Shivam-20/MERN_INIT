@@ -1,0 +1,43 @@
+# Development stage
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apk --no-cache add \
+    curl \
+    git \
+    python3 \
+    make \
+    g++
+
+# Copy package files
+COPY package*.json ./
+COPY server/package*.json ./server/
+
+# Install root dependencies
+RUN npm install -g nodemon
+RUN npm install
+
+# Install server dependencies
+WORKDIR /app/server
+RUN npm install express-validator
+
+# Set working directory back to root
+WORKDIR /app
+
+# Copy application code
+COPY . .
+
+# Install all dependencies again to catch any missing ones
+RUN npm install
+WORKDIR /app/server
+RUN npm install
+WORKDIR /app
+
+# Expose the application port
+EXPOSE 5000
+
+# Command to run the application
+CMD ["npm", "run", "dev"]
