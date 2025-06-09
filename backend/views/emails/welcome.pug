@@ -1,0 +1,17 @@
+extends base
+
+block content
+  h2 Welcome to Encriptofy, #{name}!
+  
+  p We're excited to have you on board. To get started, please verify your email address by clicking the button below:
+  
+  div(style='text-align: center; margin: 30px 0;')
+    a.btn(href=url) Verify Email Address
+  
+  p If the button doesn't work, you can copy and paste this link into your browser:
+  
+  .token= url
+  
+  p This link will expire in 24 hours.
+  
+  p If you didn't create an account with Encriptofy, you can safely ignore this email.

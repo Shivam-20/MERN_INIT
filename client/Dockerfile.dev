@@ -5,24 +5,36 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Install system dependencies
-RUN apk --no-cache add git
+RUN apk --no-cache add \
+    curl \
+    git \
+    python3 \
+    make \
+    g++
 
 # Copy package files
 COPY package*.json ./
 
-
-# Install dependencies
+# Install dependencies with legacy peer deps to handle dependency conflicts
 RUN npm install --legacy-peer-deps
+
+# Explicitly install react-icons with legacy peer deps to handle dependency conflicts
+RUN npm install react-icons@5.0.1 --save --legacy-peer-deps
 
 # Copy application code
 COPY . .
 
-# Set environment variables
-ENV NODE_ENV=development
-ENV VITE_API_URL=http://localhost:5000/api/v1
-
-# Expose the application port
+# Expose port
 EXPOSE 3000
 
-# Command to run the application
+# Set environment variables for Vite
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
+ENV NODE_ENV=development
+
+# Set the Vite host to 0.0.0.0 to allow access from outside the container
+ENV HOST=0.0.0.0
+ENV PORT=3000
+
+# Start the development server
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

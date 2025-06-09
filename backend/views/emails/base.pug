@@ -1,0 +1,17 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    title= subject
+    style
+      include email.css
+  body
+    .email-container
+      .header
+        h1 Encriptofy
+      .content
+        block content
+      .footer
+        p &copy; #{new Date().getFullYear()} Encriptofy. All rights reserved.
+        p If you didn't request this email, you can safely ignore it.

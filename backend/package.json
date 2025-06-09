@@ -1,0 +1,90 @@
+{
+  "name": "encriptofy-backend",
+  "version": "1.0.0",
+  "description": "Backend for Encriptofy admin panel",
+  "main": "server.js",
+  "scripts": {
+    "start": "NODE_ENV=production node server.js",
+    "dev": "NODE_ENV=development nodemon server.js",
+    "docs:generate": "node scripts/generate-docs.js",
+    "docs:serve": "swagger serve -p 3001 swagger-output.json",
+    "docs:watch": "nodemon --watch ./controllers --watch ./routes --watch ./models --exec \"npm run docs:generate\"",
+    "test": "NODE_ENV=test jest --detectOpenHandles --forceExit --verbose --coverage --setupFilesAfterEnv=./test/setup.js",
+    "test:watch": "NODE_ENV=test jest --watch --detectOpenHandles --forceExit --setupFilesAfterEnv=./test/setup.js",
+    "test:ci": "NODE_ENV=test jest --ci --detectOpenHandles --forceExit --coverage --setupFilesAfterEnv=./test/setup.js",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix",
+    "format": "prettier --write \"**/*.{js,json,md}\"",
+    "seed:import": "node seed/seed.js --import",
+    "seed:delete": "node seed/seed.js --delete"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.8.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^6.11.2",
+    "helmet": "^6.2.0",
+    "hpp": "^0.2.3",
+    "html-to-text": "^9.0.5",
+    "http-status-codes": "^2.3.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^7.8.7",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.10.1",
+    "pug": "^3.0.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^11.1.0",
+    "validator": "^13.15.15",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "xss-clean": "^0.1.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/supertest": "^6.0.3",
+    "dotenv": "^16.5.0",
+    "jest": "^29.7.0",
+    "mongodb-memory-server": "^10.1.4",
+    "nodemon": "^2.0.22",
+    "supertest": "^7.1.1"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": [
+      "./test/setup.js"
+    ],
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/test/",
+      "/config/"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/config/"
+    ]
+  },
+  "browserslist": [
+    "last 10 Chrome versions",
+    "last 10 Firefox versions",
+    "last 4 Safari versions"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "mongodb",
+    "jwt",
+    "authentication",
+    "admin",
+    "encriptofy"
+  ],
+  "author": "",
+  "license": "MIT"
+}

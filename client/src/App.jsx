@@ -7,9 +7,8 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProfilePage from './pages/ProfilePage';
 import UpdatePasswordPage from './pages/UpdatePasswordPage';
 import DashboardPage from './pages/DashboardPage';
-import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import PrivateRoute from './components/PrivateRoute';
-import AdminRoute from './components/AdminRoute';
+import AdminRoutes from './routes/AdminRoutes';
 
 function AppContent() {
   const { loading } = useAuth();
@@ -60,14 +59,7 @@ function AppContent() {
       />
       
       {/* Admin routes */}
-      <Route
-        path="/admin/dashboard"
-        element={
-          <AdminRoute>
-            <AdminDashboardPage />
-          </AdminRoute>
-        }
-      />
+      <Route path="/admin/*" element={<AdminRoutes />} />
       
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

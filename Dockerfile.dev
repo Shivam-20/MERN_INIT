@@ -1,5 +1,5 @@
 # Development stage
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Set working directory
 WORKDIR /app
@@ -29,12 +29,6 @@ WORKDIR /app
 
 # Copy application code
 COPY . .
-
-# Install all dependencies again to catch any missing ones
-RUN npm install
-WORKDIR /app/server
-RUN npm install
-WORKDIR /app
 
 # Expose the application port
 EXPOSE 5000

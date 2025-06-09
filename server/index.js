@@ -1,4 +1,3 @@
-import dotenv from 'dotenv';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -12,13 +11,11 @@ import xss from 'xss-clean';
 import hpp from 'hpp';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import env from './config/env.js';
 
 // Get the directory name in ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Load environment variables
-dotenv.config({ path: path.join(__dirname, '../.env') });
 
 // Create Express app
 const app = express();

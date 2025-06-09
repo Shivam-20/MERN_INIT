@@ -1,6 +1,7 @@
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 import User from '../models/User.js';
 import { AppError } from '../utils/errorHandler.js';
+import env from './env.js';
 
 /**
  * Configure JWT strategy for Passport
@@ -11,9 +12,9 @@ const jwtOptions = {
   // Extract JWT from the Authorization header as a Bearer token
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
   // Secret key to verify the token's signature
-  secretOrKey: process.env.JWT_SECRET,
+  secretOrKey: env.JWT_SECRET,
   // Allow for token expiration to be overridden in tests
-  ignoreExpiration: process.env.NODE_ENV === 'test',
+  ignoreExpiration: env.NODE_ENV === 'test',
   // Pass request to callback
   passReqToCallback: true,
 };
