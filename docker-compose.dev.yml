@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # MongoDB Service
   mongodb:
-    image: mongo:6.0
+    image: mongo:5.0
     container_name: encriptofy-mongodb
     ports:
       - "27017:27017"
@@ -12,26 +12,23 @@ services:
     environment:
       - MONGO_INITDB_DATABASE=encriptofy
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "'db.runCommand({ ping: 1 })'"]
+      test: ["CMD", "mongo", "--eval", "'db.runCommand({ ping: 1 })'"]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 5
-    networks:
-      - encriptofy-network
+      start_period: 40s
 
   # Backend Service
   backend:
     build:
-      context: .
+      context: ./server
       dockerfile: Dockerfile.dev
     container_name: encriptofy-backend
-    command: sh -c "npm install && cd server && npm install express-validator && cd .. && npm run dev"
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/server/node_modules
     ports:
       - "5000:5000"
+    volumes:
+      - ./server:/app
+      - backend_node_modules:/app/node_modules
     environment:
       - NODE_ENV=development
       - MONGODB_URI=mongodb://mongodb:27017/encriptofy
@@ -41,8 +38,8 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
-    networks:
-      - encriptofy-network
+    command: sh -c "npm install && npm start"
+    restart: unless-stopped
 
   # Frontend Service
   frontend:
@@ -50,31 +47,24 @@ services:
       context: ./client
       dockerfile: Dockerfile.dev
     container_name: encriptofy-frontend
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-      - /app/.vite
     ports:
       - "3000:3000"
+    volumes:
+      - ./client:/app
+      - frontend_node_modules:/app/node_modules
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://localhost:5000/api/v1
+      - VITE_API_URL=/api
       - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
-      - HOST=0.0.0.0
-      - PORT=3000
-    working_dir: /app
-    stdin_open: true
-    tty: true
     depends_on:
       - backend
-    networks:
-      - encriptofy-network
-
-networks:
-  encriptofy-network:
-    driver: bridge
+    restart: unless-stopped
 
 volumes:
   mongodb_data_container:
-    name: mongodb_data_container
+  frontend_node_modules:
+  backend_node_modules:
+
+networks:
+  default:
+    name: encriptofy-network

@@ -1,6 +1,6 @@
 import api from './api';
 
-const API_URL = '/api/v1/auth';
+const API_URL = '/auth';
 
 // Set the auth token for requests if it exists
 export const setAuthToken = (token) => {

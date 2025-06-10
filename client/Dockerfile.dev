@@ -1,40 +1,30 @@
-# Development stage
-FROM node:20-alpine
+FROM node:16-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apk --no-cache add \
-    curl \
-    git \
-    python3 \
-    make \
-    g++
+# Install dependencies
+RUN apk add --no-cache curl python3 make g++ openssl
 
-# Copy package files
+# Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies with legacy peer deps to handle dependency conflicts
+# Install dependencies with legacy peer deps
 RUN npm install --legacy-peer-deps
 
-# Explicitly install react-icons with legacy peer deps to handle dependency conflicts
-RUN npm install react-icons@5.0.1 --save --legacy-peer-deps
-
-# Copy application code
+# Copy the rest of the code
 COPY . .
+
+# Fix permissions
+RUN mkdir -p node_modules/.vite && chmod -R 777 node_modules
 
 # Expose port
 EXPOSE 3000
 
-# Set environment variables for Vite
-ENV CHOKIDAR_USEPOLLING=true
-ENV WATCHPACK_POLLING=true
+# Environment variables
 ENV NODE_ENV=development
-
-# Set the Vite host to 0.0.0.0 to allow access from outside the container
 ENV HOST=0.0.0.0
-ENV PORT=3000
+ENV CHOKIDAR_USEPOLLING=true
 
-# Start the development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Start the app
+CMD ["npm", "run", "dev", "--", "--host"]

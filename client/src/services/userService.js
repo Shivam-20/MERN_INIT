@@ -1,6 +1,6 @@
 import api from './api';
 
-const API_URL = '/api/v1/users';
+const API_URL = '/users';
 
 /**
  * User Service
