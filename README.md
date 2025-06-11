@@ -486,12 +486,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Tailwind CSS](https://tailwindcss.com/) - A utility-first CSS framework
 - [Vite](https://vitejs.dev/) - Next Generation Frontend Tooling
 
-## 📧 Contact
-
-Your Name - [@yourtwitter](https://twitter.com/yourusername) - your.email@example.com
-
-Project Link: [https://github.com/yourusername/encriptofy](https://github.com/yourusername/encriptofy)
-
 ## 📚 Resources
 
 - [React Documentation](https://reactjs.org/docs/getting-started.html)
