@@ -488,7 +488,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-Your Name - [@yourtwitter](https://twitter.com/yourusername) - your.email@example.com
+Shivam Chaudhary - [@yourtwitter](https://twitter.com/yourusername) - SHIVAMAP20@GMAIL.COM
 
 Project Link: [https://github.com/yourusername/encriptofy](https://github.com/yourusername/encriptofy)
 
