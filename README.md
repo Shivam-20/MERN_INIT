@@ -549,7 +549,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Tailwind CSS](https://tailwindcss.com/) - A utility-first CSS framework
 - [Vite](https://vitejs.dev/) - Next Generation Frontend Tooling
 
-## 📚 Resources
+## 📚 Documentation
+
+- [Database Setup](docs/DATABASE_SETUP.md) - MongoDB configuration and Atlas setup
+- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment instructions
+- [File Organization](docs/FILE_ORGANIZATION.md) - Project structure overview
+- [Organization Guide](docs/ORGANIZATION_COMPLETE.md) - Complete project organization details
+
+## 📖 Resources
 
 - [React Documentation](https://reactjs.org/docs/getting-started.html)
 - [Express Documentation](https://expressjs.com/)
