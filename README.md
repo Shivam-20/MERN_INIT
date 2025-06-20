@@ -80,6 +80,16 @@ A full-stack user authentication and authorization system with admin and user ro
 
 ## 🛠️ Installation
 
+### Quick Start
+   ```bash
+   git clone https://github.com/yourusername/encriptofy.git
+   cd encriptofy
+   ./dev.sh setup    # Automated setup
+   ./dev.sh start    # Start development
+   ```
+
+### Manual Installation
+
 1. **Clone the repository**
    ```bash
    git clone https://github.com/yourusername/encriptofy.git
@@ -89,28 +99,28 @@ A full-stack user authentication and authorization system with admin and user ro
 2. **Set up environment variables**
    ```bash
    # Copy the example .env file
-   cp .env.example .env
+   cp config/env.example .env
    ```
    
    Update the `.env` file with your configuration.
 
 3. **Install dependencies**
    ```bash
-   # Install root dependencies
+   # Quick install using helper script
+   ./dev.sh setup
+   
+   # Or manual installation:
    npm install
-
-   # Install server dependencies
-   cd server
-   npm install
-
-   # Install client dependencies
-   cd ../client
-   npm install
+   cd server && npm install
+   cd ../client && npm install
    ```
 
 4. **Start the development servers**
    ```bash
-   # From the root directory
+   # Using helper script
+   ./dev.sh start
+   
+   # Or using npm
    npm run dev
    ```
 
@@ -160,44 +170,97 @@ A full-stack user authentication and authorization system with admin and user ro
 ```
 encriptofy/
 ├── client/                     # Frontend React application
-│   ├── public/                # Static files (images, fonts, etc.)
-│   └── src/                   # React source code
-│       ├── assets/            # Images, icons, fonts, etc.
-│       ├── components/        # Reusable UI components
-│       │   ├── common/        # Common components (buttons, inputs, etc.)
-│       │   ├── layout/        # Layout components (header, footer, etc.)
-│       │   └── ui/            # UI components
-│       ├── config/            # Configuration files
-│       ├── constants/         # Application constants
-│       ├── contexts/          # React contexts
-│       ├── features/          # Feature-based modules
-│       │   ├── auth/          # Authentication feature
-│       │   ├── dashboard/     # Dashboard feature
-│       │   └── users/         # Users management feature
-│       ├── hooks/             # Custom React hooks
-│       ├── lib/               # Library code
-│       ├── pages/             # Page components
-│       ├── routes/            # Route definitions
-│       ├── services/          # API service layer
-│       ├── store/             # State management
-│       ├── styles/            # Global styles
-│       ├── types/             # TypeScript type definitions
-│       ├── utils/             # Utility functions
-│       ├── App.jsx            # Main App component
-│       └── main.jsx           # Entry point
+│   ├── public/                # Static assets
+│   ├── src/
+│   │   ├── components/        # Reusable components
+│   │   │   ├── AdminRoute.jsx
+│   │   │   ├── NavLink.jsx
+│   │   │   └── PrivateRoute.jsx
+│   │   ├── contexts/          # React contexts
+│   │   │   └── AuthContext.jsx
+│   │   ├── hooks/             # Custom hooks
+│   │   │   └── useDropdown.js
+│   │   ├── pages/             # Page components
+│   │   │   ├── admin/
+│   │   │   │   └── AdminDashboardPage.jsx
+│   │   │   ├── DashboardPage.jsx
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── RegisterPage.jsx
+│   │   │   ├── ProfilePage.jsx
+│   │   │   ├── ForgotPasswordPage.jsx
+│   │   │   ├── ResetPasswordPage.jsx
+│   │   │   └── UpdatePasswordPage.jsx
+│   │   ├── services/          # API services
+│   │   │   ├── api.js
+│   │   │   ├── authService.js
+│   │   │   └── userService.js
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── package.json
+│   ├── vite.config.js
+│   └── tailwind.config.js
 │
 ├── server/                    # Backend Node.js application
-│   ├── config/               # Configuration files
-│   │   ├── db.js            # Database configuration
-│   │   ├── passport.js      # Passport configuration
-│   │   └── env.js           # Environment configuration
-│   │
-│   ├── controllers/        # Route controllers
-│   │   ├── auth.controller.js
-│   │   └── user.controller.js
-│   │
-│   ├── middlewares/        # Custom middlewares
-│   │   ├── auth.middleware.js
+│   ├── __tests__/            # Test files
+│   │   ├── controllers/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   └── utils/
+│   ├── config/
+│   │   └── passport.js       # Passport configuration
+│   ├── controllers/
+│   │   └── userController.js
+│   ├── middleware/
+│   │   └── auth.js          # Authentication middleware
+│   ├── models/
+│   │   └── User.js          # User model
+│   ├── routes/
+│   │   ├── auth.js          # Authentication routes
+│   │   └── userRoutes.js    # User management routes
+│   ├── utils/
+│   │   ├── apiResponse.js   # API response utilities
+│   │   ├── errorHandler.js  # Error handling utilities
+│   │   └── validateEnv.js   # Environment validation
+│   ├── index.js             # Main server file
+│   └── package.json
+│
+├── docs/                      # Documentation
+│   ├── DEPLOYMENT.md         # Deployment guide
+│   ├── DOCUMENTATION_GUIDE.md # Documentation maintenance
+│   ├── ISSUES_FIXED.md       # Fixed issues summary
+│   ├── PROJECT_DOCUMENTATION.md # Detailed project docs
+│   └── PROJECT_STATE_DOCUMENTATION.md # Current state
+│
+├── scripts/                   # Build and deployment scripts
+│   ├── backup.sh             # Backup script
+│   ├── deploy-prod.sh        # Production deployment
+│   ├── docker-compose.sh     # Docker helper
+│   ├── generate-ssl.sh       # SSL certificate generation
+│   ├── healthcheck.sh        # Health monitoring
+│   ├── setup-dev.sh          # Development setup
+│   └── update-docs.sh        # Documentation updates
+│
+├── docker/                    # Docker configuration
+│   ├── nginx/                # Nginx configuration
+│   │   ├── conf.d/
+│   │   │   └── app.conf
+│   │   ├── nginx.conf
+│   │   └── ssl/              # SSL certificates
+│   ├── docker-compose.yml    # Development Docker setup
+│   ├── docker-compose.prod.yml # Production Docker setup
+│   ├── Dockerfile            # Production Dockerfile
+│   ├── Dockerfile.dev        # Development Dockerfile
+│   ├── Dockerfile.nginx      # Nginx Dockerfile
+│   └── .dockerignore
+│
+├── config/                    # Configuration files
+│   ├── env.example           # Environment template
+│   └── backup.config         # Backup configuration
+│
+├── dev.sh                     # Development helper script
+├── package.json              # Root package.json
+├── README.md                 # This file
+└── .gitignore                # Git ignore patterns
 │   │   └── error.middleware.js
 │   │
 │   ├── models/             # Database models

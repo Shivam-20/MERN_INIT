@@ -22,12 +22,12 @@ services:
   # Backend Service
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile.dev
+      context: ..
+      dockerfile: docker/Dockerfile.dev
     container_name: encriptofy-backend
     command: sh -c "npm install && npm install express-validator && npm run dev"
     volumes:
-      - .:/app
+      - ..:/app
       - /app/node_modules
       - /app/server/node_modules
     ports:
@@ -49,11 +49,11 @@ services:
   # Frontend Service
   frontend:
     build:
-      context: ./client
+      context: ../client
       dockerfile: Dockerfile.dev
     container_name: encriptofy-frontend
     volumes:
-      - ./client:/app
+      - ../client:/app
       - /app/node_modules
       - /app/.vite
     ports:

@@ -20,6 +20,10 @@ const __dirname = path.dirname(__filename);
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
+// Validate environment variables
+import { validateEnvironment } from './utils/validateEnv.js';
+validateEnvironment();
+
 // Create Express app
 const app = express();
 

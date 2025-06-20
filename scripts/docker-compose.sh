@@ -87,6 +87,9 @@ case $COMMAND in
         check_docker
         echo -e "${GREEN}Starting development environment...${NC}"
         
+        # Change to docker directory
+        cd "$(dirname "$0")/../docker" || exit 1
+        
         # Build if requested
         if [[ "$BUILD" = true ]]; then
             echo "Building containers..."
@@ -100,6 +103,9 @@ case $COMMAND in
     prod)
         check_docker
         echo -e "${GREEN}Starting production environment...${NC}"
+        
+        # Change to docker directory
+        cd "$(dirname "$0")/../docker" || exit 1
         
         # Generate SSL certificates if they don't exist
         generate_ssl
@@ -116,15 +122,18 @@ case $COMMAND in
         
     stop)
         echo -e "${YELLOW}Stopping all containers...${NC}"
+        cd "$(dirname "$0")/../docker" || exit 1
         docker-compose -f docker-compose.yml -f docker-compose.prod.yml stop $SERVICE
         ;;
         
     down)
         echo -e "${YELLOW}Stopping and removing all containers, networks, and volumes...${NC}"
+        cd "$(dirname "$0")/../docker" || exit 1
         docker-compose -f docker-compose.yml -f docker-compose.prod.yml down -v
         ;;
         
     logs)
+        cd "$(dirname "$0")/../docker" || exit 1
         docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs -f $SERVICE
         ;;
         

@@ -19,7 +19,13 @@
     "lint": "eslint . --ext .js,.jsx --ignore-path .gitignore --ignore-pattern node_modules",
     "lint:fix": "npm run lint -- --fix",
     "format": "prettier --write \"**/*.{js,jsx,json,md}\"",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "setup": "./scripts/setup-dev.sh",
+    "docker": "./scripts/docker-compose.sh",
+    "docs": "./scripts/update-docs.sh",
+    "backup": "./scripts/backup.sh",
+    "deploy": "./scripts/deploy-prod.sh",
+    "health": "./scripts/healthcheck.sh"
   },
   "keywords": [
     "react",

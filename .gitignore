@@ -5,6 +5,7 @@ node_modules/
 
 # Testing
 /coverage
+backend/coverage/
 
 # Production
 /build
@@ -14,6 +15,10 @@ node_modules/
 .DS_Store
 
 # Environment variables - Example file is committed, but actual values should be in .env.local
+.env
+.env.*
+!.env.example
+!env.example
 .env.local
 .env.development.local
 .env.test.local
@@ -59,3 +64,15 @@ logs
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Documentation backups
+*.backup.*
+docs/*.backup.*
+
+# Backend folder (only contains coverage reports)
+backend/
+
+# Uploads and temporary files
+uploads/
+tmp/
+temp/
