@@ -1,77 +1,72 @@
 version: '3.8'
 
 services:
-  # MongoDB Service
-  mongodb:
-    image: mongo:6.0
-    container_name: encriptofy-mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data_container:/data/db
-    environment:
-      - MONGO_INITDB_DATABASE=encriptofy
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "'db.runCommand({ ping: 1 })'"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - encriptofy-network
-
   # Backend Service
   backend:
     build:
       context: ..
       dockerfile: docker/Dockerfile.dev
+      cache_from:
+        - docker_backend:latest
     container_name: encriptofy-backend
-    command: sh -c "npm install && npm install express-validator && npm run dev"
+    command: sh -c "cd server && npm run dev"
     volumes:
-      - ..:/app
-      - /app/node_modules
-      - /app/server/node_modules
+      - ../server:/app/server
+      - backend_node_modules:/app/node_modules
+      - server_node_modules:/app/server/node_modules
     ports:
       - "5000:5000"
+    env_file:
+      - ../.env
     environment:
       - NODE_ENV=development
       - PORT=5000
-      - MONGODB_URI=mongodb://mongodb:27017/encriptofy
-      - JWT_SECRET=your_jwt_secret_key_here
-      - JWT_EXPIRES_IN=1d
-      - ADMIN_EMAIL=admin@example.com
-      - ADMIN_PASSWORD=admin123
-    depends_on:
-      mongodb:
-        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - encriptofy-network
+    restart: unless-stopped
 
   # Frontend Service
   frontend:
     build:
       context: ../client
       dockerfile: Dockerfile.dev
+      cache_from:
+        - docker_frontend:latest
     container_name: encriptofy-frontend
     volumes:
-      - ../client:/app
-      - /app/node_modules
-      - /app/.vite
+      - ../client/src:/app/src
+      - ../client/public:/app/public
+      - ../client/index.html:/app/index.html
+      - ../client/vite.config.js:/app/vite.config.js
+      - frontend_node_modules:/app/node_modules
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=development
       - VITE_API_URL=http://localhost:5000/api/v1
       - CHOKIDAR_USEPOLLING=true
+      - BROWSER=none
     working_dir: /app
     stdin_open: true
     tty: true
+    depends_on:
+      backend:
+        condition: service_healthy
     networks:
       - encriptofy-network
+    restart: unless-stopped
 
 networks:
   encriptofy-network:
     driver: bridge
 
 volumes:
-  mongodb_data_container:
-    name: mongodb_data_container
+  backend_node_modules:
+  server_node_modules:
+  frontend_node_modules:

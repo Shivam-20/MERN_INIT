@@ -89,8 +89,19 @@ const MONGODB_URI =
 
 mongoose
   .connect(MONGODB_URI)
-  .then(() => {
+  .then(async () => {
     console.log('MongoDB connected successfully');
+    
+    // Seed admin user on startup
+    if (process.env.NODE_ENV !== 'test') {
+      try {
+        const { seedAdminUser } = await import('./utils/seedAdmin.js');
+        await seedAdminUser();
+      } catch (error) {
+        console.warn('Warning: Admin user seeding failed:', error.message);
+      }
+    }
+    
     // Start server only after DB connection is established
     startServer();
   })

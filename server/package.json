@@ -7,9 +7,12 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "NODE_ENV=test jest --detectOpenHandles --forceExit",
+    "test": "NODE_ENV=test node --experimental-vm-modules node_modules/.bin/jest --detectOpenHandles --forceExit",
     "test:watch": "npm test -- --watch",
-    "test:coverage": "npm test -- --coverage"
+    "test:coverage": "npm test -- --coverage",
+    "seed:admin": "node scripts/seedAdmin.js",
+    "seed:admin:validate": "node scripts/seedAdmin.js --validate",
+    "seed:admin:stats": "node scripts/seedAdmin.js --stats"
   },
   "keywords": [
     "node",
@@ -43,6 +46,16 @@
   },
   "jest": {
     "testEnvironment": "node",
+    "extensionsToTreatAsEsm": [".js"],
+    "globals": {
+      "ts-jest": {
+        "useESM": true
+      }
+    },
+    "moduleNameMapping": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "transform": {},
     "testMatch": [
       "**/__tests__/**/*.test.js"
     ],

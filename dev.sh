@@ -15,6 +15,7 @@ print_usage() {
     echo "  build         - Build for production"
     echo "  docker        - Start with Docker"
     echo "  docs          - Update documentation"
+    echo "  seed          - Database seeding commands"
     echo "  backup        - Create backup"
     echo "  deploy        - Deploy to production"
     echo "  health        - Run health check"
@@ -48,11 +49,26 @@ case "$1" in
         ;;
     "docker")
         echo "🐳 Starting with Docker..."
-        ./scripts/docker-compose.sh "$2"
+        if [ "$2" = "test" ] || [ "$2" = "quick" ]; then
+            ./scripts/docker-test.sh "${3:-quick}"
+        else
+            ./scripts/docker-compose.sh "$2"
+        fi
         ;;
     "docs")
         echo "📚 Updating documentation..."
         ./scripts/update-docs.sh "$2"
+        ;;
+    "seed")
+        echo "🌱 Running database seeder..."
+        if [ "$2" = "admin" ]; then
+            cd server && npm run seed:admin
+        else
+            echo "Available seeders:"
+            echo "  ./dev.sh seed admin          - Seed admin user"
+            echo "  ./dev.sh seed admin validate - Validate admin config"
+            echo "  ./dev.sh seed admin stats    - Show admin stats"
+        fi
         ;;
     "backup")
         echo "💾 Creating backup..."

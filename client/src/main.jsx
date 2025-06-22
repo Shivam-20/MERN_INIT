@@ -1,11 +1,12 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App.jsx';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 
-createRoot(document.getElementById('root')).render(
+// Temporarily use React 17 syntax for compatibility
+ReactDOM.render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
@@ -13,4 +14,5 @@ createRoot(document.getElementById('root')).render(
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,
+  document.getElementById('root')
 )
