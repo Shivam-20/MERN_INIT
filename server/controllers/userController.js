@@ -1,5 +1,46 @@
 import User from '../models/User.js';
 import { AppError } from '../utils/errorHandler.js';
+import jwt from 'jsonwebtoken';
+
+// @desc    Create new user (admin only)
+// @route   POST /api/v1/users
+// @access  Private/Admin
+export const createUser = async (req, res, next) => {
+  try {
+    const { name, email, password, role = 'user' } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return next(new AppError('Email already in use', 400));
+    }
+
+    // Create new user - the pre-save hook will handle password hashing
+    const newUser = new User({
+      name,
+      email,
+      password, // Will be hashed by the pre-save hook
+      role: role.toLowerCase(),
+    });
+
+    await newUser.save();
+
+    res.status(201).json({
+      status: 'success',
+      data: {
+        user: {
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          createdAt: newUser.createdAt,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // @desc    Get all users (admin only)
 // @route   GET /api/v1/users
@@ -149,10 +190,56 @@ export const deleteMe = async (req, res, next) => {
   }
 };
 
+// @desc    Update user password
+// @route   PATCH /api/v1/users/updateMyPassword
+// @access  Private
+export const updateMyPassword = async (req, res, next) => {
+  try {
+    // 1) Get user from collection
+    const user = await User.findById(req.user.id).select('+password');
+
+    // 2) Check if POSTed current password is correct
+    if (!(await user.correctPassword(req.body.currentPassword))) {
+      return next(new AppError('Your current password is incorrect.', 401));
+    }
+
+    // 3) If so, update password
+    user.password = req.body.password;
+    await user.save();
+
+    // 4) Log user in, send JWT
+    const payload = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: '7d',
+    });
+
+    res.status(200).json({
+      status: 'success',
+      token: `Bearer ${token}`,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
+  createUser,
   getAllUsers,
   getUser,
   getMe,
   updateMe,
+  updateMyPassword,
   deleteMe
 };

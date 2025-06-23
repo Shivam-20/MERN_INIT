@@ -258,4 +258,124 @@ router.get('/user', passport.authenticate('jwt', { session: false }), (req, res)
   });
 });
 
+// @route   POST /api/v1/auth/forgot-password
+// @desc    Forgot password - Send reset email (placeholder)
+// @access  Public
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No user found with that email address',
+      });
+    }
+
+    // In a real app, you would:
+    // 1. Generate a reset token
+    // 2. Save it to the user (with expiration)
+    // 3. Send an email with the reset link
+    
+    // For now, just return success
+    res.status(200).json({
+      success: true,
+      message: 'Password reset email sent (placeholder implementation)',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   PATCH /api/v1/auth/reset-password/:token
+// @desc    Reset password with token (placeholder)
+// @access  Public
+router.patch('/reset-password/:token', async (req, res, next) => {
+  try {
+    const { password, confirmPassword } = req.body;
+    
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Passwords do not match',
+      });
+    }
+
+    // In a real app, you would:
+    // 1. Verify the reset token
+    // 2. Find the user by token
+    // 3. Update the password
+    // 4. Clear the reset token
+    
+    // For now, just return success
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successful (placeholder implementation)',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   PATCH /api/v1/auth/update-password
+// @desc    Update current user password
+// @access  Private
+router.patch('/update-password', passport.authenticate('jwt', { session: false }), async (req, res, next) => {
+  try {
+    const { currentPassword, password, passwordConfirm } = req.body;
+
+    if (!currentPassword || !password || !passwordConfirm) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide current password, new password, and password confirmation',
+      });
+    }
+
+    if (password !== passwordConfirm) {
+      return res.status(400).json({
+        success: false,
+        message: 'New passwords do not match',
+      });
+    }
+
+    // Get user with password
+    const user = await User.findById(req.user.id).select('+password');
+    
+    // Check current password
+    const isMatch = await user.correctPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect',
+      });
+    }
+
+    // Update password
+    user.password = password;
+    await user.save();
+
+    // Create new JWT
+    const payload = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: '7d',
+    });
+
+    res.status(200).json({
+      success: true,
+      token: `Bearer ${token}`,
+      message: 'Password updated successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

@@ -11,10 +11,13 @@ router.use(passport.authenticate('jwt', { session: false }));
 
 // Admin routes
 router.get('/', isAdmin, userController.getAllUsers);
+router.post('/', isAdmin, userController.createUser);
 
 // User profile routes
 router.get('/me', userController.getMe, userController.getUser);
 router.patch('/updateMe', userController.updateMe);
+router.put('/updateMe', userController.updateMe); // Allow both PATCH and PUT
+router.patch('/updateMyPassword', userController.updateMyPassword);
 router.delete('/deleteMe', userController.deleteMe);
 
 // Fallback route

@@ -124,9 +124,11 @@ app.get('/api/health', (req, res) => {
 // API routes
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/userRoutes.js';
+import { cryptoRoutes } from './routes/cryptoRoutes.js';
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/crypto', cryptoRoutes);
 
 // 4) ERROR HANDLING
 // Handle 404 - Not Found
