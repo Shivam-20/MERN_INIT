@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/Layout';
 import cryptoService from '../services/cryptoService';
+import { FaCopy, FaSave, FaKey, FaTrash, FaDownload, FaEye, FaEyeSlash } from 'react-icons/fa';
+import GlassCard from '../components/GlassCard';
 
 const DashboardPage = () => {
   const { user } = useAuth();
@@ -16,6 +18,28 @@ const DashboardPage = () => {
   const [fileResult, setFileResult] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [encryptionKey, setEncryptionKey] = useState('');
+  
+  // Password storage functionality
+  const [storedPasswords, setStoredPasswords] = useState([]);
+  const [showPasswordManager, setShowPasswordManager] = useState(false);
+  const [newPasswordName, setNewPasswordName] = useState('');
+  const [newPasswordValue, setNewPasswordValue] = useState('');
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  // Load stored passwords from localStorage on component mount
+  useEffect(() => {
+    const savedPasswords = localStorage.getItem(`encryption_passwords_${user?.email}`);
+    if (savedPasswords) {
+      setStoredPasswords(JSON.parse(savedPasswords));
+    }
+  }, [user?.email]);
+
+  // Save passwords to localStorage whenever they change
+  useEffect(() => {
+    if (user?.email) {
+      localStorage.setItem(`encryption_passwords_${user?.email}`, JSON.stringify(storedPasswords));
+    }
+  }, [storedPasswords, user?.email]);
 
   useEffect(() => {
     if (!user) {
@@ -24,6 +48,68 @@ const DashboardPage = () => {
       setLoading(false);
     }
   }, [user, navigate]);
+
+  // Password management functions
+  const addPassword = () => {
+    if (newPasswordName.trim() && newPasswordValue.trim()) {
+      const newPassword = {
+        id: Date.now(),
+        name: newPasswordName.trim(),
+        value: newPasswordValue.trim(),
+        createdAt: new Date().toISOString()
+      };
+      setStoredPasswords([...storedPasswords, newPassword]);
+      setNewPasswordName('');
+      setNewPasswordValue('');
+    }
+  };
+
+  const removePassword = (id) => {
+    setStoredPasswords(storedPasswords.filter(pwd => pwd.id !== id));
+  };
+
+  const usePassword = (password) => {
+    setEncryptionKey(password.value);
+  };
+
+  // Save current key with a prompt for name
+  const saveCurrentKey = () => {
+    if (!encryptionKey.trim()) {
+      alert('Please enter an encryption key first');
+      return;
+    }
+    
+    const keyName = prompt('Enter a name for this encryption key:');
+    if (keyName && keyName.trim()) {
+      const newPassword = {
+        id: Date.now(),
+        name: keyName.trim(),
+        value: encryptionKey.trim(),
+        createdAt: new Date().toISOString()
+      };
+      setStoredPasswords([...storedPasswords, newPassword]);
+    }
+  };
+
+  // Copy text with success feedback
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    }
+  };
 
   // Handle file upload with 4MB limit
   const handleFileChange = (e) => {
@@ -116,7 +202,15 @@ const DashboardPage = () => {
       const url = URL.createObjectURL(fileResult.blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileResult.name;
+      
+      // For encrypted files, always use .txt extension
+      if (fileResult.action === 'encrypt') {
+        a.download = `${fileResult.name}.txt`;
+      } else {
+        // For decrypted files, use original name
+        a.download = fileResult.name;
+      }
+      
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -136,26 +230,24 @@ const DashboardPage = () => {
     <Layout title="Dashboard">
       <div className="px-4 sm:px-0">
         {/* Header */}
-        <div className="mb-8">
-          <div className="card">
-            <div className="p-6">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                Welcome back, {user?.name}!
-              </h2>
-              <p className="text-gray-600 mb-4">
-                Choose a tool to encrypt or decrypt your data securely.
-              </p>
-              {user?.role === 'admin' && (
-                <Link
-                  to="/admin/dashboard"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                >
-                  Go to Admin Dashboard
-                </Link>
-              )}
-            </div>
+        <GlassCard className="mb-8">
+          <div className="p-6">
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-2">
+              Welcome back, {user?.name}!
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Choose a tool to encrypt or decrypt your data securely.
+            </p>
+            {user?.role === 'admin' && (
+              <Link
+                to="/admin/dashboard"
+                className="px-4 py-2 rounded-2xl bg-gradient-to-r from-blue-400 to-indigo-500 text-white font-semibold shadow-lg hover:from-blue-500 hover:to-indigo-600 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center gap-2"
+              >
+                Go to Admin Dashboard
+              </Link>
+            )}
           </div>
-        </div>
+        </GlassCard>
 
         {/* Main Navigation Tabs */}
         <div className="mb-6">
@@ -206,7 +298,7 @@ const DashboardPage = () => {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="card hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('encryption')}>
+            <GlassCard className="cursor-pointer" onClick={() => setActiveTab('encryption')}>
               <div className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -222,9 +314,9 @@ const DashboardPage = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            </GlassCard>
 
-            <div className="card hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('decryption')}>
+            <GlassCard className="cursor-pointer" onClick={() => setActiveTab('decryption')}>
               <div className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -240,7 +332,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            </GlassCard>
           </div>
         )}
 
@@ -248,7 +340,7 @@ const DashboardPage = () => {
         {(activeTab === 'encryption' || activeTab === 'decryption') && (
           <div className="space-y-6">
             {/* Sub-navigation */}
-            <div className="card">
+            <GlassCard>
               <div className="p-4">
                 <div className="flex space-x-4">
                   <button
@@ -273,13 +365,13 @@ const DashboardPage = () => {
                   </button>
                 </div>
               </div>
-            </div>
+            </GlassCard>
 
             {/* Text Processing */}
             {activeSubTab === 'text' && (
-              <div className="card">
+              <GlassCard>
                 <div className="p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
                     Text {activeTab === 'encryption' ? 'Encryption' : 'Decryption'}
                   </h3>
                   
@@ -288,14 +380,110 @@ const DashboardPage = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Encryption Key
                       </label>
-                      <input
-                        type="password"
-                        value={encryptionKey}
-                        onChange={(e) => setEncryptionKey(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Enter your encryption key"
-                      />
+                      <div className="flex space-x-2">
+                        <input
+                          type="password"
+                          value={encryptionKey}
+                          onChange={(e) => setEncryptionKey(e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white/80 dark:bg-gray-800/60 transition-all duration-200"
+                          placeholder="Enter your encryption key"
+                        />
+                        {storedPasswords.length > 0 && (
+                          <select
+                            onChange={(e) => {
+                              const selected = storedPasswords.find(pwd => pwd.id === parseInt(e.target.value));
+                              if (selected) usePassword(selected);
+                            }}
+                            className="px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white/80 dark:bg-gray-800/60 transition-all duration-200"
+                            defaultValue=""
+                          >
+                            <option value="">Saved Keys</option>
+                            {storedPasswords.map(pwd => (
+                              <option key={pwd.id} value={pwd.id}>{pwd.name}</option>
+                            ))}
+                          </select>
+                        )}
+                        <button
+                          onClick={() => setShowPasswordManager(!showPasswordManager)}
+                          className="px-3 py-2 bg-gray-100 text-gray-700 rounded-xl shadow hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200 flex items-center gap-2"
+                        >
+                          {showPasswordManager ? 'Hide' : 'Manage'} Keys
+                        </button>
+                        {encryptionKey.trim() && (
+                          <button
+                            onClick={saveCurrentKey}
+                            className="px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-md hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200"
+                          >
+                            Save Key
+                          </button>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Password Manager */}
+                    {showPasswordManager && (
+                      <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-white/40 shadow animate-fadeIn">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">Password Manager</h4>
+                        
+                        {/* Add new password */}
+                        <div className="flex space-x-2 mb-4">
+                          <input
+                            type="text"
+                            value={newPasswordName}
+                            onChange={(e) => setNewPasswordName(e.target.value)}
+                            placeholder="Password name"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white/80 dark:bg-gray-800/60 transition-all duration-200"
+                          />
+                          <input
+                            type="password"
+                            value={newPasswordValue}
+                            onChange={(e) => setNewPasswordValue(e.target.value)}
+                            placeholder="Password value"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white/80 dark:bg-gray-800/60 transition-all duration-200"
+                          />
+                          <button
+                            onClick={addPassword}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-md hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200"
+                          >
+                            Add
+                          </button>
+                        </div>
+
+                        {/* Stored passwords list */}
+                        {storedPasswords.length > 0 ? (
+                          <div className="space-y-2">
+                            {storedPasswords.map(pwd => (
+                              <div key={pwd.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                                <div className="flex-1">
+                                  <div className="text-sm font-medium text-gray-900">{pwd.name}</div>
+                                  <div className="text-xs text-gray-500">
+                                    Created: {new Date(pwd.createdAt).toLocaleDateString()}
+                                  </div>
+                                </div>
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => usePassword(pwd)}
+                                    className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded shadow hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200 flex items-center gap-1"
+                                  >
+                                    <FaKey className="inline-block mr-1" />
+                                    Use
+                                  </button>
+                                  <button
+                                    onClick={() => removePassword(pwd.id)}
+                                    className="px-2 py-1 text-xs bg-red-500 text-white rounded shadow hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 transition-all duration-200 flex items-center gap-1"
+                                  >
+                                    <FaTrash className="inline-block mr-1" />
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500">No saved passwords yet.</p>
+                        )}
+                      </div>
+                    )}
                     
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -305,7 +493,7 @@ const DashboardPage = () => {
                         rows={4}
                         value={textInput}
                         onChange={(e) => setTextInput(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white/80 dark:bg-gray-800/60 transition-all duration-200"
                         placeholder={activeTab === 'encryption' ? 'Enter text to encrypt...' : 'Enter encrypted text to decrypt...'}
                       />
                     </div>
@@ -313,7 +501,7 @@ const DashboardPage = () => {
                     <button
                       onClick={() => handleTextProcess(activeTab === 'encryption' ? 'encrypt' : 'decrypt')}
                       disabled={isProcessing}
-                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                      className="w-full px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-md hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50"
                     >
                       {isProcessing ? 'Processing...' : `${activeTab === 'encryption' ? 'Encrypt' : 'Decrypt'} Text`}
                     </button>
@@ -327,26 +515,26 @@ const DashboardPage = () => {
                           rows={4}
                           value={textResult}
                           readOnly
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white/80 dark:bg-gray-800/60 transition-all duration-200"
                         />
                         <button
-                          onClick={() => navigator.clipboard.writeText(textResult)}
-                          className="mt-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                          onClick={() => copyToClipboard(textResult)}
+                          className="mt-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl shadow hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200"
                         >
-                          Copy to Clipboard
+                          {copySuccess ? <FaCopy className="inline-block mr-1" /> : 'Copy to Clipboard'}
                         </button>
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
+              </GlassCard>
             )}
 
             {/* File Processing */}
             {activeSubTab === 'file' && (
-              <div className="card">
+              <GlassCard>
                 <div className="p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
                     File {activeTab === 'encryption' ? 'Encryption' : 'Decryption'}
                   </h3>
                   
@@ -355,14 +543,110 @@ const DashboardPage = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Encryption Key
                       </label>
-                      <input
-                        type="password"
-                        value={encryptionKey}
-                        onChange={(e) => setEncryptionKey(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Enter your encryption key"
-                      />
+                      <div className="flex space-x-2">
+                        <input
+                          type="password"
+                          value={encryptionKey}
+                          onChange={(e) => setEncryptionKey(e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white/80 dark:bg-gray-800/60 transition-all duration-200"
+                          placeholder="Enter your encryption key"
+                        />
+                        {storedPasswords.length > 0 && (
+                          <select
+                            onChange={(e) => {
+                              const selected = storedPasswords.find(pwd => pwd.id === parseInt(e.target.value));
+                              if (selected) usePassword(selected);
+                            }}
+                            className="px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white/80 dark:bg-gray-800/60 transition-all duration-200"
+                            defaultValue=""
+                          >
+                            <option value="">Saved Keys</option>
+                            {storedPasswords.map(pwd => (
+                              <option key={pwd.id} value={pwd.id}>{pwd.name}</option>
+                            ))}
+                          </select>
+                        )}
+                        <button
+                          onClick={() => setShowPasswordManager(!showPasswordManager)}
+                          className="px-3 py-2 bg-gray-100 text-gray-700 rounded-xl shadow hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200 flex items-center gap-2"
+                        >
+                          {showPasswordManager ? 'Hide' : 'Manage'} Keys
+                        </button>
+                        {encryptionKey.trim() && (
+                          <button
+                            onClick={saveCurrentKey}
+                            className="px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-md hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200"
+                          >
+                            Save Key
+                          </button>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Password Manager for Files */}
+                    {showPasswordManager && (
+                      <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-white/40 shadow animate-fadeIn">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">Password Manager</h4>
+                        
+                        {/* Add new password */}
+                        <div className="flex space-x-2 mb-4">
+                          <input
+                            type="text"
+                            value={newPasswordName}
+                            onChange={(e) => setNewPasswordName(e.target.value)}
+                            placeholder="Password name"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white/80 dark:bg-gray-800/60 transition-all duration-200"
+                          />
+                          <input
+                            type="password"
+                            value={newPasswordValue}
+                            onChange={(e) => setNewPasswordValue(e.target.value)}
+                            placeholder="Password value"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white/80 dark:bg-gray-800/60 transition-all duration-200"
+                          />
+                          <button
+                            onClick={addPassword}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-md hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200"
+                          >
+                            Add
+                          </button>
+                        </div>
+
+                        {/* Stored passwords list */}
+                        {storedPasswords.length > 0 ? (
+                          <div className="space-y-2">
+                            {storedPasswords.map(pwd => (
+                              <div key={pwd.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                                <div className="flex-1">
+                                  <div className="text-sm font-medium text-gray-900">{pwd.name}</div>
+                                  <div className="text-xs text-gray-500">
+                                    Created: {new Date(pwd.createdAt).toLocaleDateString()}
+                                  </div>
+                                </div>
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => usePassword(pwd)}
+                                    className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded shadow hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200 flex items-center gap-1"
+                                  >
+                                    <FaKey className="inline-block mr-1" />
+                                    Use
+                                  </button>
+                                  <button
+                                    onClick={() => removePassword(pwd.id)}
+                                    className="px-2 py-1 text-xs bg-red-500 text-white rounded shadow hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 transition-all duration-200 flex items-center gap-1"
+                                  >
+                                    <FaTrash className="inline-block mr-1" />
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500">No saved passwords yet.</p>
+                        )}
+                      </div>
+                    )}
                     
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -393,7 +677,7 @@ const DashboardPage = () => {
                       </div>
                       
                       {file && (
-                        <div className="mt-2 p-3 bg-gray-50 rounded-md">
+                        <div className="mt-2 p-3 bg-white/80 dark:bg-gray-800/60 rounded-md">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <svg className="h-5 w-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -415,7 +699,7 @@ const DashboardPage = () => {
                     <button
                       onClick={() => handleFileProcess(activeTab === 'encryption' ? 'encrypt' : 'decrypt')}
                       disabled={isProcessing || !file}
-                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                      className="w-full px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-md hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50"
                     >
                       {isProcessing ? 'Processing...' : `${activeTab === 'encryption' ? 'Encrypt' : 'Decrypt'} File`}
                     </button>
@@ -427,7 +711,9 @@ const DashboardPage = () => {
                             <h4 className="text-sm font-medium text-green-800">
                               File {activeTab === 'encryption' ? 'Encrypted' : 'Decrypted'} Successfully!
                             </h4>
-                            <p className="text-sm text-green-600">Ready to download: {fileResult.name}</p>
+                            <p className="text-sm text-green-600">
+                              Ready to download: {fileResult.action === 'encrypt' ? `${fileResult.name}.txt` : fileResult.name}
+                            </p>
                             {fileResult.originalSize && (
                               <p className="text-xs text-green-500 mt-1">
                                 Original: {(fileResult.originalSize / 1024).toFixed(1)} KB
@@ -437,16 +723,16 @@ const DashboardPage = () => {
                           </div>
                           <button
                             onClick={downloadFile}
-                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-md hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200"
                           >
-                            Download
+                            Download {fileResult.action === 'encrypt' ? 'as .txt' : 'File'}
                           </button>
                         </div>
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
+              </GlassCard>
             )}
           </div>
         )}
@@ -455,7 +741,7 @@ const DashboardPage = () => {
         {activeTab === 'profile' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Link to="/profile" className="card hover:shadow-md transition-shadow">
+              <GlassCard className="cursor-pointer">
                 <div className="p-6">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
@@ -471,9 +757,9 @@ const DashboardPage = () => {
                     </div>
                   </div>
                 </div>
-              </Link>
+              </GlassCard>
 
-              <Link to="/update-password" className="card hover:shadow-md transition-shadow">
+              <GlassCard className="cursor-pointer">
                 <div className="p-6">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
@@ -489,13 +775,13 @@ const DashboardPage = () => {
                     </div>
                   </div>
                 </div>
-              </Link>
+              </GlassCard>
             </div>
 
             {/* Account Information */}
-            <div className="card">
+            <GlassCard>
               <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-2">
                   Account Information
                 </h3>
                 <p className="mt-1 max-w-2xl text-sm text-gray-500">
@@ -532,7 +818,7 @@ const DashboardPage = () => {
                   </div>
                 </dl>
               </div>
-            </div>
+            </GlassCard>
           </div>
         )}
       </div>
