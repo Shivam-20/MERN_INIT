@@ -21,6 +21,7 @@ import {
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import FileUploadAdvanced from '../components/FileUploadAdvanced';
 
 const DashboardPage = () => {
   const { user } = useAuth();
@@ -128,16 +129,13 @@ const DashboardPage = () => {
   };
 
   // Handle file upload with 4MB limit
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
+  const handleFileChange = (selectedFile) => {
     if (selectedFile) {
-      try {
-        cryptoService.validateFileSize(selectedFile, 4);
-        setFile(selectedFile);
-        setFileResult(null);
-      } catch (error) {
-        alert(error.message);
-      }
+      setFile(selectedFile);
+      setFileResult(null);
+    } else {
+      setFile(null);
+      setFileResult(null);
     }
   };
 
@@ -510,18 +508,14 @@ const DashboardPage = () => {
               <div className="space-y-6">
                 <Card title="File Upload" subtitle="Select a file to encrypt or decrypt">
                   <div className="space-y-4">
-                    <input
-                      type="file"
-                      onChange={handleFileChange}
-                      className="w-full p-3 border border-gray-300 rounded-xl"
+                    <FileUploadAdvanced
+                      onFileSelect={handleFileChange}
+                      acceptedTypes=".txt,.json,.csv,.xml,.html,.css,.js,.md,.log"
+                      maxSize={4}
+                      placeholder="Choose a file to encrypt or decrypt"
+                      subtitle="Supported formats: TXT, JSON, CSV, XML, HTML, CSS, JS, MD, LOG (Max 4MB)"
+                      showProgress={true}
                     />
-                    {file && (
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                        <p className="text-sm text-blue-800">
-                          Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </p>
-                      </div>
-                    )}
                     <div className="flex space-x-3">
                       <Button
                         variant="primary"
@@ -529,6 +523,7 @@ const DashboardPage = () => {
                         loading={isProcessing}
                         icon={<FaLock />}
                         fullWidth
+                        disabled={!file}
                       >
                         Encrypt File
                       </Button>
@@ -538,6 +533,7 @@ const DashboardPage = () => {
                         loading={isProcessing}
                         icon={<FaUnlock />}
                         fullWidth
+                        disabled={!file}
                       >
                         Decrypt File
                       </Button>
