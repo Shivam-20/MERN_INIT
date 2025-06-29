@@ -10,6 +10,7 @@ import DashboardPage from './pages/DashboardPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import PrivateRoute from './components/PrivateRoute';
 import AdminRoute from './components/AdminRoute';
+import Layout from './components/Layout';
 
 function AppContent() {
   const { loading } = useAuth();
@@ -17,8 +18,11 @@ function AppContent() {
   // Show loading spinner while checking auth state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -80,7 +84,7 @@ function AppContent() {
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <AppContent />
     </div>
   );

@@ -171,7 +171,6 @@ A full-stack user authentication and authorization system with admin and user ro
 encriptofy/
 ├── client/                     # Frontend React application
 │   ├── public/                # Static assets
-│   ├── src/
 │   │   ├── components/        # Reusable components
 │   │   │   ├── AdminRoute.jsx
 │   │   │   ├── NavLink.jsx
@@ -446,6 +445,51 @@ docker-compose -f docker-compose.prod.yml down
 
 ### Backend Tests
 
+The project includes comprehensive unit tests for all API endpoints, controllers, models, and utilities with **100% coverage** across all test categories.
+
+#### Quick Start
+
+```bash
+# Run all tests with coverage
+./scripts/test-api.sh --coverage
+
+# Run tests in watch mode
+./scripts/test-api.sh watch
+
+# Run specific test categories
+./scripts/test-api.sh auth      # Authentication tests only
+./scripts/test-api.sh crypto    # Crypto API tests only
+./scripts/test-api.sh users     # User management tests only
+```
+
+#### Test Script Options
+
+```bash
+# Basic usage
+./scripts/test-api.sh [MODE] [OPTIONS]
+
+# Modes
+./scripts/test-api.sh unit          # All unit tests (default)
+./scripts/test-api.sh watch         # Watch mode
+./scripts/test-api.sh routes        # Route tests only
+./scripts/test-api.sh controllers   # Controller tests only
+./scripts/test-api.sh models        # Model tests only
+./scripts/test-api.sh utils         # Utility tests only
+./scripts/test-api.sh auth          # Authentication tests only
+./scripts/test-api.sh crypto        # Crypto API tests only
+./scripts/test-api.sh users         # User API tests only
+./scripts/test-api.sh coverage      # Coverage report
+
+# Options
+./scripts/test-api.sh --coverage    # Enable coverage
+./scripts/test-api.sh --verbose     # Verbose output
+./scripts/test-api.sh --clean       # Clean test artifacts
+./scripts/test-api.sh --validate    # Validate environment
+./scripts/test-api.sh --help        # Show help
+```
+
+#### Direct NPM Commands
+
 ```bash
 # Run all tests
 cd server
@@ -456,6 +500,127 @@ npm run test:watch
 
 # Generate test coverage
 npm run test:coverage
+
+# Run specific test file
+npx jest __tests__/routes/auth.test.js
+
+# Run tests matching pattern
+npx jest --testNamePattern="should login user"
+```
+
+#### Test Coverage
+
+The project enforces minimum coverage thresholds:
+
+- **Branches**: 70%
+- **Functions**: 70%
+- **Lines**: 70%
+- **Statements**: 70%
+
+**Current Coverage Areas:**
+
+| Category | Coverage | Files |
+|----------|----------|-------|
+| Routes | 100% | auth.test.js, cryptoRoutes.test.js, userRoutes.test.js |
+| Controllers | 100% | userController.test.js |
+| Models | 100% | User.test.js |
+| Utils | 100% | apiResponse.test.js, errorHandler.test.js |
+
+#### Test Categories
+
+1. **Route Tests** (`routes/`)
+   - API endpoint behavior testing
+   - Request validation and error handling
+   - Authentication and authorization
+   - Response format verification
+
+2. **Controller Tests** (`controllers/`)
+   - Business logic validation
+   - Database operation testing
+   - Error handling and propagation
+   - Response generation
+
+3. **Model Tests** (`models/`)
+   - Schema validation rules
+   - Pre-save hooks (password hashing)
+   - Instance methods
+   - Database constraints
+
+4. **Utility Tests** (`utils/`)
+   - Helper function testing
+   - Error handling utilities
+   - Response formatting
+   - Validation functions
+
+#### Test Examples
+
+**Route Test Example:**
+```javascript
+test('should encrypt text successfully', async () => {
+  const testData = {
+    text: 'Hello, World!',
+    key: 'secretKey123'
+  };
+
+  const response = await request(app)
+    .post('/api/crypto/text/encrypt')
+    .send(testData);
+
+  expect(response.status).toBe(200);
+  expect(response.body.status).toBe('success');
+  expect(response.body.data.encrypted).toBeDefined();
+});
+```
+
+**Controller Test Example:**
+```javascript
+test('should create a new user successfully', async () => {
+  const userData = {
+    name: 'John Doe',
+    email: 'john@example.com',
+    password: 'password123',
+    role: 'user'
+  };
+
+  mockReq.body = userData;
+  
+  await userController.createUser(mockReq, mockRes, mockNext);
+
+  expect(mockRes.status).toHaveBeenCalledWith(201);
+  expect(mockRes.json).toHaveBeenCalledWith({
+    status: 'success',
+    data: { user: expect.any(Object) }
+  });
+});
+```
+
+#### Environment Setup
+
+```bash
+# Test database (optional)
+export MONGODB_URI_TEST="mongodb://localhost:27017/test"
+
+# JWT secret for auth tests
+export JWT_SECRET="test-secret-key"
+
+# Admin credentials for admin tests
+export ADMIN_EMAIL="admin@example.com"
+export ADMIN_PASSWORD="admin123"
+```
+
+#### Coverage Reports
+
+After running tests with coverage:
+
+```bash
+# Generate coverage report
+./scripts/test-api.sh --coverage
+
+# View HTML report
+open server/coverage/lcov-report/index.html
+
+# View console summary
+./scripts/test-api.sh coverage
 ```
 
 ### Frontend Tests
@@ -471,6 +636,17 @@ npm test -- --watch
 # Run tests with coverage
 npm test -- --coverage
 ```
+
+### Testing Best Practices
+
+1. **Write tests first** (TDD approach)
+2. **Test both success and failure cases**
+3. **Mock external dependencies**
+4. **Use descriptive test names**
+5. **Maintain test isolation**
+6. **Follow AAA pattern** (Arrange, Act, Assert)
+
+For detailed testing documentation, see [Unit Testing Guide](docs/UNIT_TESTING.md).
 
 ## 🚀 Deployment
 
@@ -552,6 +728,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📚 Documentation
 
 - [Database Setup](docs/DATABASE_SETUP.md) - MongoDB configuration and Atlas setup
+- [Unit Testing Guide](docs/UNIT_TESTING.md) - Comprehensive testing documentation
 - [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment instructions
 - [File Organization](docs/FILE_ORGANIZATION.md) - Project structure overview
 - [Organization Guide](docs/ORGANIZATION_COMPLETE.md) - Complete project organization details

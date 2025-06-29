@@ -10,6 +10,22 @@ export const getUsers = async () => {
   return response.data?.data?.users || [];
 };
 
+// Get all users (admin only) - with proper response structure
+export const getAllUsers = async () => {
+  try {
+    const response = await api.get(API_URL);
+    return {
+      success: true,
+      data: response.data?.data?.users || []
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to fetch users'
+    };
+  }
+};
+
 // Admin: Create new user
 export const createUser = async (userData) => {
   const response = await api.post(API_URL, userData);
@@ -33,19 +49,38 @@ export const getUser = async (id) => {
 
 // Update user profile
 export const updateProfile = async (userData) => {
-  const response = await api.patch(`${API_URL}/updateMe`, userData);
-  // Backend returns { status: 'success', data: { user: {...} } }
-  return response.data?.data?.user || response.data;
+  try {
+    const response = await api.patch(`${API_URL}/updateMe`, userData);
+    return {
+      success: true,
+      data: response.data?.data?.user || response.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to update profile'
+    };
+  }
 };
 
 // Update user password
-export const updatePassword = async (currentPassword, newPassword, confirmPassword) => {
-  const response = await api.patch(`${API_URL}/updateMyPassword`, {
-    currentPassword,
-    password: newPassword,
-    passwordConfirm: confirmPassword,
-  });
-  return response.data;
+export const updatePassword = async (passwordData) => {
+  try {
+    const response = await api.patch(`${API_URL}/updateMyPassword`, {
+      currentPassword: passwordData.currentPassword,
+      password: passwordData.newPassword,
+      passwordConfirm: passwordData.newPassword,
+    });
+    return {
+      success: true,
+      data: response.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to update password'
+    };
+  }
 };
 
 // Delete user account
@@ -60,8 +95,51 @@ export const updateUser = async (id, userData) => {
   return response.data;
 };
 
+// Admin: Update user status
+export const updateUserStatus = async (id, active) => {
+  try {
+    const response = await api.patch(`${API_URL}/${id}`, { active });
+    return {
+      success: true,
+      data: response.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to update user status'
+    };
+  }
+};
+
 // Admin: Delete user
 export const deleteUser = async (id) => {
-  const response = await api.delete(`${API_URL}/${id}`);
-  return response.data;
+  try {
+    const response = await api.delete(`${API_URL}/${id}`);
+    return {
+      success: true,
+      data: response.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to delete user'
+    };
+  }
 };
+
+// Default export with all functions
+const userService = {
+  getUsers,
+  getAllUsers,
+  createUser,
+  getCurrentUser,
+  getUser,
+  updateProfile,
+  updatePassword,
+  deleteAccount,
+  updateUser,
+  updateUserStatus,
+  deleteUser
+};
+
+export default userService;

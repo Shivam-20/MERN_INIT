@@ -1,186 +1,247 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/Layout';
-import api from '../services/api';
+import userService from '../services/userService';
+import { 
+  FaUser, 
+  FaEnvelope, 
+  FaCalendar, 
+  FaShieldAlt, 
+  FaEdit, 
+  FaSave, 
+  FaTimes,
+  FaCheckCircle,
+  FaExclamationTriangle
+} from 'react-icons/fa';
+import Card from '../components/Card';
+import Button from '../components/Button';
+import Input from '../components/Input';
 
 const ProfilePage = () => {
   const { user, updateUser } = useAuth();
-  const navigate = useNavigate();
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     name: user?.name || '',
-    email: user?.email || '',
+    email: user?.email || ''
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || ''
+      });
     }
-  }, [user, navigate]);
+  }, [user]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
-    setMessage('');
-    
+    setSuccess('');
+    setLoading(true);
+
     try {
-      const { data } = await api.put('/api/v1/users/updateMe', formData);
-      updateUser(data.data.user);
-      setMessage('Profile updated successfully!');
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setMessage(''), 3000);
-    } catch (error) {
-      setError(error.response?.data?.message || 'Error updating profile');
-      
-      // Clear error message after 5 seconds
-      setTimeout(() => setError(''), 5000);
+      const result = await userService.updateProfile(formData);
+      if (result.success) {
+        updateUser(result.data);
+        setSuccess('Profile updated successfully!');
+        setIsEditing(false);
+      } else {
+        setError(result.message || 'Failed to update profile');
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
+  const handleCancel = () => {
+    setFormData({
+      name: user?.name || '',
+      email: user?.email || ''
+    });
+    setIsEditing(false);
+    setError('');
+    setSuccess('');
+  };
+
+  const getRoleBadge = (role) => {
+    const roleConfig = {
+      user: { color: 'bg-blue-100 text-blue-800', icon: <FaUser /> },
+      admin: { color: 'bg-purple-100 text-purple-800', icon: <FaShieldAlt /> }
+    };
+    
+    const config = roleConfig[role] || roleConfig.user;
+    
+    return (
+      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${config.color}`}>
+        {config.icon}
+        <span className="ml-1 capitalize">{role}</span>
+      </span>
+    );
+  };
+
   return (
-    <Layout title="Profile Settings">
-      <div className="px-4 sm:px-0">
-        <div className="max-w-2xl mx-auto">
-          {/* Success Message */}
-          {message && (
-            <div className="mb-6 alert alert-success">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium">{message}</p>
-                </div>
-              </div>
-            </div>
-          )}
+    <Layout>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            Profile Settings
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Manage your account information and preferences
+          </p>
+        </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-6 alert alert-error">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
+        {/* Success/Error Messages */}
+        {success && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 flex items-center">
+            <FaCheckCircle className="mr-2 text-green-500" />
+            {success}
+          </div>
+        )}
 
-          {/* Profile Form */}
-          <div className="card">
-            <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-6">Personal Information</h2>
-              
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-center">
+            <FaExclamationTriangle className="mr-2 text-red-500" />
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Profile Card */}
+          <div className="lg:col-span-2">
+            <Card title="Personal Information" subtitle="Update your profile details">
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Full Name"
                     name="name"
+                    type="text"
+                    placeholder="Enter your full name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="input"
-                    placeholder="Enter your full name"
+                    icon={<FaUser />}
+                    disabled={!isEditing}
                     required
                   />
-                </div>
 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
+                  <Input
+                    label="Email Address"
                     name="email"
+                    type="email"
+                    placeholder="Enter your email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="input"
-                    placeholder="Enter your email address"
+                    icon={<FaEnvelope />}
+                    disabled={!isEditing}
                     required
                   />
-                  <p className="mt-1 text-sm text-gray-500">
-                    This is your login email address
-                  </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-4">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="btn btn-primary"
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center">
-                        <div className="spinner h-4 w-4 border-white mr-2"></div>
-                        Updating...
-                      </div>
-                    ) : (
-                      'Update Profile'
-                    )}
-                  </button>
-                  
-                  <button
-                    type="button"
-                    onClick={() => navigate('/dashboard')}
-                    className="btn btn-secondary"
-                  >
-                    Cancel
-                  </button>
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                  {isEditing ? (
+                    <div className="flex space-x-3">
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        loading={loading}
+                        icon={<FaSave />}
+                      >
+                        Save Changes
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCancel}
+                        icon={<FaTimes />}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={() => setIsEditing(true)}
+                      icon={<FaEdit />}
+                    >
+                      Edit Profile
+                    </Button>
+                  )}
                 </div>
               </form>
-            </div>
+            </Card>
           </div>
-          
-          {/* Account Information */}
-          <div className="card mt-6">
-            <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Account Information</h2>
-              
+
+          {/* Account Info */}
+          <div className="space-y-6">
+            <Card title="Account Information" subtitle="Your account details">
               <div className="space-y-4">
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm font-medium text-gray-500">Account Type</span>
-                  <span className="text-sm text-gray-900 capitalize">
-                    {user?.role === 'admin' ? 'Administrator' : 'Standard User'}
-                  </span>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex items-center">
+                    <FaUser className="text-gray-400 mr-3" />
+                    <span className="text-sm font-medium text-gray-700">Role</span>
+                  </div>
+                  {getRoleBadge(user?.role)}
                 </div>
-                
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm font-medium text-gray-500">Member Since</span>
-                  <span className="text-sm text-gray-900">
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex items-center">
+                    <FaCalendar className="text-gray-400 mr-3" />
+                    <span className="text-sm font-medium text-gray-700">Member Since</span>
+                  </div>
+                  <span className="text-sm text-gray-600">
                     {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                   </span>
                 </div>
-                
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm font-medium text-gray-500">Last Updated</span>
-                  <span className="text-sm text-gray-900">
-                    {user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : 'N/A'}
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex items-center">
+                    <FaEnvelope className="text-gray-400 mr-3" />
+                    <span className="text-sm font-medium text-gray-700">Status</span>
+                  </div>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <FaCheckCircle className="mr-1" />
+                    Active
                   </span>
                 </div>
               </div>
-            </div>
+            </Card>
+
+            <Card title="Quick Actions" subtitle="Common profile actions">
+              <div className="space-y-3">
+                <Button
+                  variant="outline"
+                  fullWidth
+                  onClick={() => window.location.href = '/update-password'}
+                  icon={<FaShieldAlt />}
+                >
+                  Change Password
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  fullWidth
+                  onClick={() => window.location.href = '/dashboard'}
+                  icon={<FaUser />}
+                >
+                  Back to Dashboard
+                </Button>
+              </div>
+            </Card>
           </div>
         </div>
       </div>

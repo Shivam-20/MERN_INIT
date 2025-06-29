@@ -1,331 +1,348 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import * as userService from '../../services/userService';
+import Layout from '../../components/Layout';
+import userService from '../../services/userService';
+import { 
+  FaUsers, 
+  FaShieldAlt, 
+  FaChartLine, 
+  FaCog, 
+  FaTrash, 
+  FaEdit,
+  FaEye,
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaUserPlus,
+  FaUserCheck,
+  FaUserTimes
+} from 'react-icons/fa';
+import Card from '../../components/Card';
+import Button from '../../components/Button';
 
 const AdminDashboardPage = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [newUser, setNewUser] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'user'
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    adminUsers: 0,
+    regularUsers: 0
   });
-  const [addingUser, setAddingUser] = useState(false);
 
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      navigate('/login');
-      return;
-    }
-    
-    const fetchUsers = async () => {
-      try {
-        const data = await userService.getUsers();
-        setUsers(data);
-      } catch (err) {
-        setError('Failed to fetch users');
-        console.error('Error fetching users:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchUsers();
-  }, [user, navigate]);
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const result = await userService.getAllUsers();
+      if (result.success) {
+        setUsers(result.data);
+        calculateStats(result.data);
+      } else {
+        setError(result.message || 'Failed to fetch users');
+      }
+    } catch (err) {
+      setError('An error occurred while fetching users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateStats = (userList) => {
+    const total = userList.length;
+    const active = userList.filter(u => u.active !== false).length;
+    const admins = userList.filter(u => u.role === 'admin').length;
+    const regular = userList.filter(u => u.role === 'user').length;
+
+    setStats({
+      totalUsers: total,
+      activeUsers: active,
+      adminUsers: admins,
+      regularUsers: regular
+    });
+  };
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await userService.deleteUser(userId);
-        setUsers(users.filter(user => user._id !== userId));
-      } catch (err) {
-        setError('Failed to delete user');
-        console.error('Error deleting user:', err);
-      }
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      return;
     }
-  };
-
-  const handleAddUser = async (e) => {
-    e.preventDefault();
-    setAddingUser(true);
-    setError('');
 
     try {
-      const createdUser = await userService.createUser(newUser);
-      setUsers([...users, createdUser]);
-      setShowAddUserModal(false);
-      setNewUser({ name: '', email: '', password: '', role: 'user' });
+      const result = await userService.deleteUser(userId);
+      if (result.success) {
+        setUsers(users.filter(u => u._id !== userId));
+        calculateStats(users.filter(u => u._id !== userId));
+      } else {
+        setError(result.message || 'Failed to delete user');
+      }
     } catch (err) {
-      setError('Failed to create user');
-      console.error('Error creating user:', err);
-    } finally {
-      setAddingUser(false);
+      setError('An error occurred while deleting user');
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewUser(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handleToggleUserStatus = async (userId, currentStatus) => {
+    try {
+      const result = await userService.updateUserStatus(userId, !currentStatus);
+      if (result.success) {
+        setUsers(users.map(u => 
+          u._id === userId ? { ...u, active: !currentStatus } : u
+        ));
+        calculateStats(users.map(u => 
+          u._id === userId ? { ...u, active: !currentStatus } : u
+        ));
+      } else {
+        setError(result.message || 'Failed to update user status');
+      }
+    } catch (err) {
+      setError('An error occurred while updating user status');
+    }
   };
 
-  if (loading) {
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getRoleBadge = (role) => {
+    const roleConfig = {
+      user: { color: 'bg-blue-100 text-blue-800', icon: <FaUsers /> },
+      admin: { color: 'bg-purple-100 text-purple-800', icon: <FaShieldAlt /> }
+    };
+    
+    const config = roleConfig[role] || roleConfig.user;
+    
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
+      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
+        {config.icon}
+        <span className="ml-1 capitalize">{role}</span>
+      </span>
     );
-  }
+  };
+
+  const getStatusBadge = (active) => {
+    return active ? (
+      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <FaUserCheck className="mr-1" />
+        Active
+      </span>
+    ) : (
+      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        <FaUserTimes className="mr-1" />
+        Inactive
+      </span>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-xl font-bold text-gray-900">Encriptofy Admin</h1>
-              </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                <Link
-                  to="/dashboard"
-                  className="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                >
-                  User Dashboard
-                </Link>
-                <Link
-                  to="/admin/dashboard"
-                  className="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                >
-                  Manage Users
-                </Link>
-              </div>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:items-center">
-              <div className="ml-3 relative">
-                <div className="flex items-center">
-                  <span className="text-gray-700 mr-4">
-                    Welcome, {user?.name} (Admin)
-                  </span>
-                  <button
-                    onClick={logout}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+    <Layout>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
+            Admin Dashboard
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Manage users and monitor system activity
+          </p>
         </div>
-      </nav>
 
-      <div className="py-10">
-        <header>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="mt-1 text-sm text-gray-600">Manage users and application settings</p>
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-center">
+            <FaExclamationTriangle className="mr-2 text-red-500" />
+            {error}
           </div>
-        </header>
-        <main>
-          <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div className="px-4 py-8 sm:px-0">
-              {error && (
-                <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-red-700">{error}</p>
-                    </div>
-                  </div>
+        )}
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card variant="primary" className="text-center">
+            <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-xl mx-auto mb-4">
+              <FaUsers className="text-blue-600 text-xl" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Total Users</h3>
+            <p className="text-3xl font-bold text-blue-600">{stats.totalUsers}</p>
+          </Card>
+
+          <Card variant="success" className="text-center">
+            <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl mx-auto mb-4">
+              <FaUserCheck className="text-green-600 text-xl" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Active Users</h3>
+            <p className="text-3xl font-bold text-green-600">{stats.activeUsers}</p>
+          </Card>
+
+          <Card variant="warning" className="text-center">
+            <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-xl mx-auto mb-4">
+              <FaShieldAlt className="text-purple-600 text-xl" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Admins</h3>
+            <p className="text-3xl font-bold text-purple-600">{stats.adminUsers}</p>
+          </Card>
+
+          <Card variant="danger" className="text-center">
+            <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-xl mx-auto mb-4">
+              <FaUserTimes className="text-red-600 text-xl" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Inactive</h3>
+            <p className="text-3xl font-bold text-red-600">{stats.totalUsers - stats.activeUsers}</p>
+          </Card>
+        </div>
+
+        {/* Users Table */}
+        <Card title="User Management" subtitle="Manage all registered users">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+              <span className="ml-3 text-gray-600">Loading users...</span>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Role
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Joined
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {users.map((user) => (
+                    <tr key={user._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                            {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                            <div className="text-sm text-gray-500">{user.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getRoleBadge(user.role)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(user.active !== false)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(user.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleUserStatus(user._id, user.active !== false)}
+                            icon={user.active !== false ? <FaUserTimes /> : <FaUserCheck />}
+                          >
+                            {user.active !== false ? 'Deactivate' : 'Activate'}
+                          </Button>
+                          
+                          {user._id !== user?._id && (
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleDeleteUser(user._id)}
+                              icon={<FaTrash />}
+                            >
+                              Delete
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {users.length === 0 && (
+                <div className="text-center py-12 text-gray-500">
+                  <FaUsers className="text-4xl mx-auto mb-4 opacity-50" />
+                  <p>No users found</p>
                 </div>
               )}
-              
-              <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-                  <div>
-                    <h3 className="text-lg leading-6 font-medium text-gray-900">Users</h3>
-                    <p className="mt-1 max-w-2xl text-sm text-gray-500">List of all registered users</p>
-                  </div>
-                  <button
-                    onClick={() => setShowAddUserModal(true)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    <svg className="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Add New User
-                  </button>
-                </div>
-                <div className="border-t border-gray-200">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Name
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Email
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Role
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {users.map((userItem) => (
-                          <tr key={userItem._id}>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">{userItem.name}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-500">{userItem.email}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${userItem.role === 'admin' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-                                {userItem.role}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              {userItem.role !== 'admin' && (
-                                <button
-                                  onClick={() => handleDeleteUser(userItem._id)}
-                                  className="text-red-600 hover:text-red-900 mr-4"
-                                >
-                                  Delete
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
             </div>
-          </div>
-        </main>
-      </div>
+          )}
+        </Card>
 
-      {/* Add User Modal */}
-      {showAddUserModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Add New User</h3>
-                <button
-                  onClick={() => setShowAddUserModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+        {/* Quick Actions */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card title="System Information" subtitle="Current system status">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <span className="text-sm font-medium text-gray-700">System Status</span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <FaCheckCircle className="mr-1" />
+                  Online
+                </span>
               </div>
               
-              <form onSubmit={handleAddUser} className="space-y-4">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    required
-                    value={newUser.name}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    value={newUser.email}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    required
-                    minLength="6"
-                    value={newUser.password}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                    Role
-                  </label>
-                  <select
-                    id="role"
-                    name="role"
-                    value={newUser.role}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  >
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                
-                <div className="flex justify-end space-x-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddUserModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={addingUser}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    {addingUser ? 'Creating...' : 'Create User'}
-                  </button>
-                </div>
-              </form>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <span className="text-sm font-medium text-gray-700">Last Updated</span>
+                <span className="text-sm text-gray-600">{formatDate(new Date())}</span>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <span className="text-sm font-medium text-gray-700">Admin User</span>
+                <span className="text-sm text-gray-600">{user?.name}</span>
+              </div>
             </div>
-          </div>
+          </Card>
+
+          <Card title="Quick Actions" subtitle="Common admin tasks">
+            <div className="space-y-3">
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={fetchUsers}
+                icon={<FaUsers />}
+              >
+                Refresh Users
+              </Button>
+              
+              <Button
+                variant="outline"
+                fullWidth
+                icon={<FaChartLine />}
+              >
+                View Analytics
+              </Button>
+              
+              <Button
+                variant="ghost"
+                fullWidth
+                icon={<FaCog />}
+              >
+                System Settings
+              </Button>
+            </div>
+          </Card>
         </div>
-      )}
-    </div>
+      </div>
+    </Layout>
   );
 };
 

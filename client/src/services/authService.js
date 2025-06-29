@@ -129,3 +129,18 @@ export const updatePassword = async (currentPassword, newPassword, confirmPasswo
   });
   return response.data;
 };
+
+// Default export with all functions
+const authService = {
+  setAuthToken,
+  register,
+  login,
+  adminLogin,
+  forgotPassword,
+  resetPassword,
+  verifyToken,
+  logout,
+  updatePassword
+};
+
+export default authService;
