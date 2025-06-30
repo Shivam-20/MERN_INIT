@@ -78,6 +78,13 @@ install_dependencies() {
     if [ -d "client" ]; then
         print_status "Installing client dependencies..."
         cd client
+        
+        # Clean up any existing node_modules to avoid conflicts
+        if [ -d "node_modules" ]; then
+            print_status "Cleaning existing node_modules..."
+            rm -rf node_modules package-lock.json
+        fi
+        
         npm install
         cd ..
     fi
@@ -86,6 +93,13 @@ install_dependencies() {
     if [ -d "server" ]; then
         print_status "Installing server dependencies..."
         cd server
+        
+        # Clean up any existing node_modules to avoid conflicts
+        if [ -d "node_modules" ]; then
+            print_status "Cleaning existing node_modules..."
+            rm -rf node_modules package-lock.json
+        fi
+        
         npm install
         cd ..
     fi

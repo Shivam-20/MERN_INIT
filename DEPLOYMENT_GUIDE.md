@@ -130,6 +130,14 @@ VITE_API_URL=https://your-app.railway.app
    - Double-check all environment variables are set correctly
    - Restart deployments after changing environment variables
 
+5. **Dependency Conflicts:**
+   - If you encounter PostCSS or other dependency conflicts, run:
+   ```bash
+   ./fix-dependencies.sh
+   ```
+   - This script will clean and reinstall dependencies with proper versions
+   - Common conflicts include PostCSS 7 vs 8, Tailwind CSS versions
+
 ### Debug Commands:
 
 ```bash
@@ -141,6 +149,13 @@ vercel ls
 
 # Test API locally
 curl https://your-app.railway.app/api/health
+
+# Fix dependency issues
+./fix-dependencies.sh
+
+# Clean and reinstall dependencies
+cd client && rm -rf node_modules package-lock.json && npm install
+cd server && rm -rf node_modules package-lock.json && npm install
 ```
 
 ## 📊 Monitoring Your Deployment
