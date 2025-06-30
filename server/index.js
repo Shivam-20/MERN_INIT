@@ -111,8 +111,18 @@ mongoose
   });
 
 // 3) ROUTES
-// Health check route
+// Health check routes
 app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'Server is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+// Railway health check endpoint
+app.get('/api/v1/health', (req, res) => {
   res.status(200).json({
     status: 'success',
     message: 'Server is running',
